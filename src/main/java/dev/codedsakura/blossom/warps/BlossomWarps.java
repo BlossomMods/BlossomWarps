@@ -41,7 +41,6 @@ public class BlossomWarps implements ModInitializer {
                 .then(argument("warp", StringArgumentType.string())
                         .suggests(warpController)
                         .executes(ctx -> this.warpPlayer(ctx, ctx.getSource().getPlayer()))
-
                         .then(argument("who", EntityArgumentType.player())
                                 .requires(Permissions.require("blossom.warps.warp.others", 2))
                                 .executes(ctx -> this.warpPlayer(ctx, EntityArgumentType.getPlayer(ctx, "who"))))));
@@ -55,7 +54,6 @@ public class BlossomWarps implements ModInitializer {
                         .then(argument("dimension", DimensionArgumentType.dimension())
                                 .executes(this::listWarpsDim)))
 
-
                 .then(literal("add")
                         .requires(Permissions.require("blossom.warps.warps.add", 2))
                         .then(argument("name", StringArgumentType.string())
@@ -64,7 +62,13 @@ public class BlossomWarps implements ModInitializer {
                                         .then(argument("rotation", RotationArgumentType.rotation())
                                                 .executes(this::addWarpPosRot)
                                                 .then(argument("dimension", DimensionArgumentType.dimension())
-                                                        .executes(this::addWarpDimension)))))));
+                                                        .executes(this::addWarpDimension))))))
+
+                .then(literal("remove")
+                        .requires(Permissions.require("blossom.warps.warps.remove", 2))
+                        .then(argument("warp", StringArgumentType.string())
+                                .suggests(warpController)
+                                .executes(this::removeWarp))));
     }
 
 
@@ -190,5 +194,18 @@ public class BlossomWarps implements ModInitializer {
     private int addWarpDimension(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         ServerWorld dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension");
         return addWarpPosRotDim(ctx, dimension);
+    }
+
+
+    private int removeWarp(CommandContext<ServerCommandSource> ctx) {
+        String warpName = StringArgumentType.getString(ctx, "warp");
+        LOGGER.info("removing warp {}", warpController.findWarp(warpName));
+        boolean result = warpController.removeWarp(warpName);
+        if (result) {
+            TextUtils.sendWarnOps(ctx, "blossom.warps.remove", warpName);
+        } else {
+            TextUtils.sendErr(ctx, "blossom.warps.remove.failed", warpName);
+        }
+        return Command.SINGLE_SUCCESS;
     }
 }
