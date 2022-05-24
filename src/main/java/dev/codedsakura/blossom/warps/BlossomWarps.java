@@ -55,7 +55,7 @@ public class BlossomWarps implements ModInitializer {
                                 .executes(this::listWarpsDim)))
 
                 .then(literal("add")
-                        .requires(Permissions.require("blossom.warps.warps.add", 2))
+                        .requires(Permissions.require("blossom.warps.add", 2))
                         .then(argument("name", StringArgumentType.string())
                                 .executes(this::addWarpPlayerPos)
                                 .then(argument("position", Vec3ArgumentType.vec3(true))
@@ -65,7 +65,7 @@ public class BlossomWarps implements ModInitializer {
                                                         .executes(this::addWarpDimension))))))
 
                 .then(literal("remove")
-                        .requires(Permissions.require("blossom.warps.warps.remove", 2))
+                        .requires(Permissions.require("blossom.warps.remove", 2))
                         .then(argument("warp", StringArgumentType.string())
                                 .suggests(warpController)
                                 .executes(this::removeWarp))));
