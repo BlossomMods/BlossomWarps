@@ -10,8 +10,6 @@ import org.apache.logging.log4j.core.Logger;
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
-class BlossomWarpsConfig {}
-
 public class BlossomWarps implements ModInitializer {
     static BlossomWarpsConfig CONFIG = BlossomConfig.load(BlossomWarpsConfig.class, "BlossomWarps.json");
     public static final Logger LOGGER = CustomLogger.createLogger("BlossomWarps");
