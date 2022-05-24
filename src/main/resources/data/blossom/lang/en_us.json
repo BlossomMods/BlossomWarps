@@ -1,0 +1,12 @@
+{
+  "blossom.warps.add": "Warp %s has been successfully added!",
+  "blossom.warps.add.failed": "Warp %s already exists!",
+  "blossom.warps.remove": "Warp %s has been successfully removed!",
+  "blossom.warps.remove.failed": "Failed to remove %s!",
+  "blossom.warps.list.dimension.header": "Warps in %s:\n",
+  "blossom.warps.list.all.header": "",
+  "blossom.warps.list.item": "%s",
+  "blossom.warps.list.item.before": "- ",
+  "blossom.warps.list.item.after": "",
+  "blossom.warps.list.item.description": "Click to teleport\n%s\nx: %4$s; y: %5$s; z: %6$s\nyaw: %7$s; pitch: %8$s"
+}
