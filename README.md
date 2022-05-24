@@ -12,7 +12,7 @@ BlossomWarps is a Minecraft Fabric mod in the Blossom-series mods that provides 
 ## Dependencies
 
 * [BlossomLib](https://github.com/BlossomMods/BlossomLib)
-* [fabric-permissions-api](https://github.com/lucko/fabric-permissions-api) / [Luckperms](https://luckperms.net/) /
+* [fabric-permissions-api](https://github.com/lucko/fabric-permissions-api) / [LuckPerms](https://luckperms.net/) /
   etc. (Optional)
 
 ## Config
@@ -43,7 +43,7 @@ the mod at least once.
 
 ## Translation keys
 only keys with available arguments are shown, for full list, please see
-[`src/main/resources/data/blossom/lang/en_us.json`](https://github.com/BlossomMods/BlossomWarps/blob/main/src/main/resources/data/blossom/lang/en_us.json)
+[`src/main/resources/data/blossom/lang/en_us.json`](src/main/resources/data/blossom/lang/en_us.json)
 
 - `blossom.warps.add`: 1 argument - warp name
 - `blossom.warps.add.failed`: 1 argument - warp name
