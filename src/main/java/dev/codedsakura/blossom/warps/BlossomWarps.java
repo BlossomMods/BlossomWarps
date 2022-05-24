@@ -8,11 +8,16 @@ import dev.codedsakura.blossom.lib.*;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.command.argument.DimensionArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.command.argument.RotationArgumentType;
+import net.minecraft.command.argument.Vec3ArgumentType;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
+import net.minecraft.util.math.Vec2f;
+import net.minecraft.util.math.Vec3d;
 import org.apache.logging.log4j.core.Logger;
 
 import java.util.List;
@@ -48,7 +53,18 @@ public class BlossomWarps implements ModInitializer {
                 .then(literal("list")
                         .executes(this::listWarpsAll)
                         .then(argument("dimension", DimensionArgumentType.dimension())
-                                .executes(this::listWarpsDim))));
+                                .executes(this::listWarpsDim)))
+
+
+                .then(literal("add")
+                        .requires(Permissions.require("blossom.warps.warps.add", 2))
+                        .then(argument("name", StringArgumentType.string())
+                                .executes(this::addWarpPlayerPos)
+                                .then(argument("position", Vec3ArgumentType.vec3(true))
+                                        .then(argument("rotation", RotationArgumentType.rotation())
+                                                .executes(this::addWarpPosRot)
+                                                .then(argument("dimension", DimensionArgumentType.dimension())
+                                                        .executes(this::addWarpDimension)))))));
     }
 
 
@@ -128,5 +144,51 @@ public class BlossomWarps implements ModInitializer {
                 false
         );
         return Command.SINGLE_SUCCESS;
+    }
+
+
+    private int addWarp(CommandContext<ServerCommandSource> ctx, Warp warp) {
+        LOGGER.info("adding warp {}", warp);
+        boolean result = warpController.addWarp(warp);
+        if (result) {
+            TextUtils.sendSuccessOps(ctx, "blossom.warps.add", warp.name);
+        } else {
+            TextUtils.sendErr(ctx, "blossom.warps.add.failed", warp.name);
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int addWarpPlayerPos(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        String name = StringArgumentType.getString(ctx, "name");
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        return addWarp(ctx, new Warp(
+                name, player,
+                new TeleportUtils.TeleportDestination(player)
+        ));
+    }
+
+    private int addWarpPosRotDim(CommandContext<ServerCommandSource> ctx, ServerWorld dimension) throws CommandSyntaxException {
+        String name = StringArgumentType.getString(ctx, "name");
+        Vec3d position = Vec3ArgumentType.getPosArgument(ctx, "position").toAbsolutePos(ctx.getSource());
+        Vec2f rotation = RotationArgumentType.getRotation(ctx, "rotation").toAbsoluteRotation(ctx.getSource());
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        return addWarp(ctx, new Warp(
+                name, player,
+                new TeleportUtils.TeleportDestination(
+                        dimension,
+                        position,
+                        rotation.x,
+                        rotation.y
+                )
+        ));
+    }
+
+    private int addWarpPosRot(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        return addWarpPosRotDim(ctx, ctx.getSource().getWorld());
+    }
+
+    private int addWarpDimension(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        ServerWorld dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension");
+        return addWarpPosRotDim(ctx, dimension);
     }
 }
