@@ -86,9 +86,7 @@ class WarpController extends ListDataController<Warp> implements SuggestionProvi
     @Override
     public CompletableFuture<Suggestions> getSuggestions(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
         String start = builder.getRemaining().toLowerCase();
-        String world = context.getSource().getWorld().getRegistryKey().getValue().toString();
         data.stream()
-                .filter(v -> v.world.equals(world))
                 .map(v -> v.name)
                 .sorted(String::compareToIgnoreCase)
                 .filter(pair -> pair.toLowerCase().startsWith(start))
@@ -109,15 +107,16 @@ class WarpController extends ListDataController<Warp> implements SuggestionProvi
         if (findWarp(warp.name) != null) {
             return false;
         }
+        data.add(warp);
         write();
-        return data.add(warp);
+        return true;
     }
 
     List<Warp> getWarps() {
         return data;
     }
 
-    public boolean removeWarp(String name) {
+    boolean removeWarp(String name) {
         return data.removeIf(warp -> warp.name.equals(name));
     }
 }
