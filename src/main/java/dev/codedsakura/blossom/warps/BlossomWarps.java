@@ -39,8 +39,14 @@ public class BlossomWarps implements ModInitializer {
         BlossomLib.addCommand(literal("warp")
                 .requires(Permissions.require("blossom.warps.warp", true))
                 .then(argument("warp", StringArgumentType.string())
-                        .suggests(warpController)
-                        .executes(ctx -> this.warpPlayer(ctx, ctx.getSource().getPlayer()))
+                    .suggests(warpController)
+                    .executes(ctx -> {
+                        ServerPlayerEntity player = ctx.getSource().getPlayer();
+                        if (player == null) {
+                            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
+                        }
+                        return this.warpPlayer(ctx, player);
+                    })
                         .then(argument("who", EntityArgumentType.player())
                                 .requires(Permissions.require("blossom.warps.warp.others", 2))
                                 .executes(ctx -> this.warpPlayer(ctx, EntityArgumentType.getPlayer(ctx, "who"))))));
@@ -165,9 +171,12 @@ public class BlossomWarps implements ModInitializer {
     private int addWarpPlayerPos(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
         ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if (player == null) {
+            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
+        }
         return addWarp(ctx, new Warp(
-                name, player,
-                new TeleportUtils.TeleportDestination(player)
+            name, player,
+            new TeleportUtils.TeleportDestination(player)
         ));
     }
 
@@ -176,14 +185,17 @@ public class BlossomWarps implements ModInitializer {
         Vec3d position = Vec3ArgumentType.getPosArgument(ctx, "position").toAbsolutePos(ctx.getSource());
         Vec2f rotation = RotationArgumentType.getRotation(ctx, "rotation").toAbsoluteRotation(ctx.getSource());
         ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if (player == null) {
+            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
+        }
         return addWarp(ctx, new Warp(
-                name, player,
-                new TeleportUtils.TeleportDestination(
-                        dimension,
-                        position,
-                        rotation.x,
-                        rotation.y
-                )
+            name, player,
+            new TeleportUtils.TeleportDestination(
+                dimension,
+                position,
+                rotation.x,
+                rotation.y
+            )
         ));
     }
 
