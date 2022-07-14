@@ -1,3 +1,7 @@
+# 2.0.0-patch.1
+
+* Update CI
+
 # 2.0.0
 
 * Add global warps
