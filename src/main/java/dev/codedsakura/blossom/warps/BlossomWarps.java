@@ -1,11 +1,20 @@
 package dev.codedsakura.blossom.warps;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import dev.codedsakura.blossom.lib.*;
+import dev.codedsakura.blossom.lib.BlossomLib;
+import dev.codedsakura.blossom.lib.config.BlossomConfig;
+import dev.codedsakura.blossom.lib.permissions.Permissions;
+import dev.codedsakura.blossom.lib.teleport.TeleportUtils;
+import dev.codedsakura.blossom.lib.text.DimName;
+import dev.codedsakura.blossom.lib.text.TextSuperJoiner;
+import dev.codedsakura.blossom.lib.text.TextUtils;
+import dev.codedsakura.blossom.lib.utils.CustomLogger;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.command.argument.DimensionArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.RotationArgumentType;
@@ -21,8 +30,7 @@ import net.minecraft.util.math.Vec3d;
 import org.apache.logging.log4j.core.Logger;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Optional;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -69,19 +77,41 @@ public class BlossomWarps implements ModInitializer {
                                                 .executes(this::addWarpPosRot)
                                                 .then(argument("dimension", DimensionArgumentType.dimension())
                                                         .executes(this::addWarpDimension))))))
+                .then(literal("add-global")
+                        .requires(Permissions.require("blossom.warps.add.global", 2))
+                        .then(argument("name", StringArgumentType.string())
+                                .executes(this::addGlobalWarpPlayerPos)
+                                .then(argument("position", Vec3ArgumentType.vec3(true))
+                                        .then(argument("rotation", RotationArgumentType.rotation())
+                                                .executes(this::addGlobalWarpPosRot)
+                                                .then(argument("dimension", DimensionArgumentType.dimension())
+                                                        .executes(this::addGlobalWarpDimension))))))
 
                 .then(literal("remove")
                         .requires(Permissions.require("blossom.warps.remove", 2))
                         .then(argument("warp", StringArgumentType.string())
                                 .suggests(warpController)
                                 .executes(this::removeWarp))));
+
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            CommandDispatcher<ServerCommandSource> dispatcher = server.getCommandManager().getDispatcher();
+            LOGGER.debug(warpController.getWarps());
+            Optional.ofNullable(warpController.getWarps())
+                    .orElse(List.of())
+                    .stream()
+                    .filter(v -> v.global)
+                    .map(v -> v.name)
+                    .forEach(warpName -> dispatcher
+                            .register(literal(warpName)
+                                    .requires(Permissions.require("blossom.warps.global." + warpName, true))
+                                    .executes(ctx -> warpToName(ctx, warpName))));
+        });
     }
 
 
-    private int warpPlayer(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity player) {
-        String warpName = StringArgumentType.getString(ctx, "warp");
+    private int warpPlayerToName(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity player, String warpName) {
         Warp warp = warpController.findWarp(warpName);
-        LOGGER.info("warp player [{}] to {}", player.getUuid(), warp);
+        LOGGER.info("warp player [{}] to global {}", player.getUuid(), warp);
         if (warp != null) {
             TeleportUtils.teleport(
                     CONFIG.teleportation,
@@ -95,62 +125,74 @@ public class BlossomWarps implements ModInitializer {
         return Command.SINGLE_SUCCESS;
     }
 
+    private int warpPlayer(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity player) {
+        String warpName = StringArgumentType.getString(ctx, "warp");
+        return warpPlayerToName(ctx, player, warpName);
+    }
 
-    MutableText listWarpsConcatenate(List<Warp> warps, String world) {
-        LOGGER.debug("concatenating {} warps (of dim {})", warps.size(), world);
-        AtomicBoolean pastFirst = new AtomicBoolean(false);
-        MutableText result = TextUtils.translation("blossom.warps.list.dimension.header", world);
-        warps.stream()
-                .filter(warp -> Objects.equals(warp.world, world))
-                .forEach(warp -> {
-                    if (pastFirst.getAndSet(true)) {
-                        result.append("\n");
-                    }
-                    result.append(TextUtils.translation("blossom.warps.list.item.before"));
-                    result.append(TextUtils.translation("blossom.warps.list.item", warp.name)
-                            .styled(style -> style
-                                    .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/warp " + warp.name))
-                                    .withHoverEvent(new HoverEvent(
-                                            HoverEvent.Action.SHOW_TEXT,
-                                            TextUtils.translation(
-                                                    "blossom.warps.list.item.description",
-                                                    warp.name,
-                                                    warp.owner,
-                                                    warp.world,
-                                                    String.format("%.2f", warp.x),
-                                                    String.format("%.2f", warp.y),
-                                                    String.format("%.2f", warp.z),
-                                                    String.format("%.2f", warp.yaw),
-                                                    String.format("%.2f", warp.pitch)
-                                            )))));
-                    result.append(TextUtils.translation("blossom.warps.list.item.after"));
-                });
-        return result;
+    private int warpToName(CommandContext<ServerCommandSource> ctx, String warpName) throws CommandSyntaxException {
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if (player == null) {
+            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
+        }
+        return warpPlayerToName(ctx, player, warpName);
+    }
+
+
+    MutableText listWarpsConcatenate(String world) {
+        MutableText result = warpController.getWarps().stream()
+                .filter(warp -> warp.world.equals(world))
+                .map(warp -> TextUtils.translation("blossom.warps.list.item", warp.name)
+                        .styled(style -> style
+                                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/warp " + warp.name))
+                                .withHoverEvent(new HoverEvent(
+                                        HoverEvent.Action.SHOW_TEXT,
+                                        TextUtils.translation(
+                                                "blossom.warps.list.item.description",
+                                                warp.name,
+                                                warp.owner,
+                                                warp.world,
+                                                String.format("%.2f", warp.x),
+                                                String.format("%.2f", warp.y),
+                                                String.format("%.2f", warp.z),
+                                                String.format("%.2f", warp.yaw),
+                                                String.format("%.2f", warp.pitch)
+                                        )))))
+                .collect(TextSuperJoiner.collector(
+                        TextUtils.translation("blossom.warps.list.item.before"),
+                        TextUtils.translation("blossom.warps.list.item.after"),
+                        TextUtils.translation("blossom.warps.list.item.join")
+                ));
+        MutableText copy = TextUtils.translation("blossom.warps.list.header", DimName.get(world)).copy();
+        return copy.append(result);
     }
 
     private int listWarpsAll(CommandContext<ServerCommandSource> ctx) {
-        AtomicBoolean pastFirst = new AtomicBoolean(false);
         List<Warp> warps = warpController.getWarps();
-        MutableText result = TextUtils.translation("blossom.warps.list.all.header");
-        warps.stream()
+        if (warps.size() == 0) {
+            TextUtils.sendErr(ctx, "blossom.warps.list.all.empty");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        MutableText result = warps.stream()
                 .map(warp -> warp.world)
                 .distinct()
-                .forEach(world -> {
-                    if (pastFirst.getAndSet(true)) {
-                        result.append("\n");
-                    }
-                    result.append(listWarpsConcatenate(warps, world));
-                });
-        ctx.getSource().sendFeedback(result, false);
+                .map(this::listWarpsConcatenate)
+                .collect(TextSuperJoiner.joiner(TextUtils.translation("blossom.warps.list.all.join")));
+
+        ctx.getSource().sendFeedback(TextUtils.translation("blossom.warps.list.all.header").append(result), false);
         return Command.SINGLE_SUCCESS;
     }
 
     private int listWarpsDim(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        String dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue().toString();
+        if (warpController.getWarps().stream().noneMatch(warp -> warp.world.equals(dimension))) {
+            TextUtils.sendErr(ctx, "blossom.warps.list.dimension.empty", dimension);
+            return Command.SINGLE_SUCCESS;
+        }
+
         ctx.getSource().sendFeedback(
-                listWarpsConcatenate(
-                        warpController.getWarps(),
-                        DimensionArgumentType.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue().toString()
-                ),
+                listWarpsConcatenate(dimension),
                 false
         );
         return Command.SINGLE_SUCCESS;
@@ -180,7 +222,7 @@ public class BlossomWarps implements ModInitializer {
         ));
     }
 
-    private int addWarpPosRotDim(CommandContext<ServerCommandSource> ctx, ServerWorld dimension) throws CommandSyntaxException {
+    private int addWarpPosRotDim(CommandContext<ServerCommandSource> ctx, ServerWorld dimension, boolean global) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
         Vec3d position = Vec3ArgumentType.getPosArgument(ctx, "position").toAbsolutePos(ctx.getSource());
         Vec2f rotation = RotationArgumentType.getRotation(ctx, "rotation").toAbsoluteRotation(ctx.getSource());
@@ -189,23 +231,46 @@ public class BlossomWarps implements ModInitializer {
             throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
         }
         return addWarp(ctx, new Warp(
-            name, player,
-            new TeleportUtils.TeleportDestination(
-                dimension,
-                position,
-                rotation.x,
-                rotation.y
-            )
+                name, player,
+                new TeleportUtils.TeleportDestination(
+                        dimension,
+                        position,
+                        rotation.x,
+                        rotation.y
+                ),
+                global
         ));
     }
 
     private int addWarpPosRot(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
-        return addWarpPosRotDim(ctx, ctx.getSource().getWorld());
+        return addWarpPosRotDim(ctx, ctx.getSource().getWorld(), false);
     }
 
     private int addWarpDimension(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         ServerWorld dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension");
-        return addWarpPosRotDim(ctx, dimension);
+        return addWarpPosRotDim(ctx, dimension, false);
+    }
+
+    private int addGlobalWarpPlayerPos(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        String name = StringArgumentType.getString(ctx, "name");
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if (player == null) {
+            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
+        }
+        return addWarp(ctx, new Warp(
+                name, player,
+                new TeleportUtils.TeleportDestination(player),
+                true
+        ));
+    }
+
+    private int addGlobalWarpPosRot(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        return addWarpPosRotDim(ctx, ctx.getSource().getWorld(), true);
+    }
+
+    private int addGlobalWarpDimension(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        ServerWorld dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension");
+        return addWarpPosRotDim(ctx, dimension, true);
     }
 
 

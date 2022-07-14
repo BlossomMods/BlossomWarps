@@ -34,9 +34,9 @@ the mod at least once.
   Permission: `blossom.warps.warp.others` (default: OP level 2)
 - `/warps` - alias of `/warps list`  
   Permission: `blossom.warps.warps` (default: true)
-  - `list` - list all available warps  
-  - `add <name> [<position> <rotation>] [<dimension>]` - add a warp called `<warp>` in `<dimension>` at `<position>` with rotation: `<rotation>`.
-    If position/rotation or dimension not provided, executors position will be used.  
+  - `list` - list all available warps
+  - `add <name> [<position> <rotation>] [<dimension>]` - add a warp called `<warp>` in `<dimension>` at `<position>`
+    with rotation: `<rotation>`. If position/rotation or dimension not provided, executors position will be used.  
     Permission: `blossom.warps.add` (default: OP level 2)
   - `remove <name>` - removes a warp called `<name>`  
     Permission: `blossom.warps.remove` (default: OP level 2)
@@ -49,6 +49,8 @@ only keys with available arguments are shown, for full list, please see
 - `blossom.warps.add.failed`: 1 argument - warp name
 - `blossom.warps.remove`: 1 argument - warp name
 - `blossom.warps.remove.failed`: 1 argument - warp name
-- `blossom.warps.list.dimension.header`: 1 argument - dimension key
+- `blossom.warps.list.header`: 1 argument - dimension name
 - `blossom.warps.list.item`: 1 argument - warp name
-- `blossom.warps.list.item.description`: 8 arguments - warp name, warp owner UUID, warp dimension key, warp x, warp y, warp z, warp yaw, warp pitch
+- `blossom.warps.list.item.description`: 8 arguments - warp name, warp owner UUID, warp dimension key, warp x, warp y,
+  warp z, warp yaw, warp pitch
+- `blossom.warps.list.dimension.empty`: 1 argument - dimension name

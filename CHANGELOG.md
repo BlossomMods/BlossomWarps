@@ -1,3 +1,9 @@
+# 2.0.0
+
+* Add global warps
+* Update to BlossomLib 2
+* Improve some translation keys
+
 # 1.0.1
 
 * Fix warps from other dimensions not being suggested

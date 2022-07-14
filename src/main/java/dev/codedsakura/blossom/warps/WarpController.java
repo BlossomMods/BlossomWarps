@@ -4,8 +4,8 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import dev.codedsakura.blossom.lib.ListDataController;
-import dev.codedsakura.blossom.lib.TeleportUtils;
+import dev.codedsakura.blossom.lib.data.ListDataController;
+import dev.codedsakura.blossom.lib.teleport.TeleportUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
@@ -24,16 +24,22 @@ class Warp {
     public double x, y, z;
     public float yaw, pitch;
     public String world;
+    public boolean global;
 
     Warp(String name, PlayerEntity owner, TeleportUtils.TeleportDestination destination) {
+        this(name, owner, destination, false);
+    }
+
+    Warp(String name, PlayerEntity owner, TeleportUtils.TeleportDestination destination, boolean global) {
         this(
                 name, destination.world.getRegistryKey().getValue().toString(), owner.getUuid(),
                 destination.x, destination.y, destination.z,
-                destination.yaw, destination.pitch
+                destination.yaw, destination.pitch,
+                global
         );
     }
 
-    Warp(String name, String world, UUID owner, double x, double y, double z, float yaw, float pitch) {
+    Warp(String name, String world, UUID owner, double x, double y, double z, float yaw, float pitch, boolean global) {
         this.name = name;
         this.world = world;
         this.owner = owner;
@@ -42,6 +48,7 @@ class Warp {
         this.z = z;
         this.yaw = yaw;
         this.pitch = pitch;
+        this.global = global;
     }
 
     @Override
@@ -55,6 +62,7 @@ class Warp {
                 ", z=" + z +
                 ", yaw=" + yaw +
                 ", pitch=" + pitch +
+                ", global=" + global +
                 '}';
     }
 
