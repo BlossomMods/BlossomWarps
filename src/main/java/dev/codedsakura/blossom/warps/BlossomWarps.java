@@ -49,10 +49,7 @@ public class BlossomWarps implements ModInitializer {
                 .then(argument("warp", StringArgumentType.string())
                     .suggests(warpController)
                     .executes(ctx -> {
-                        ServerPlayerEntity player = ctx.getSource().getPlayer();
-                        if (player == null) {
-                            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
-                        }
+                        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
                         return this.warpPlayer(ctx, player);
                     })
                         .then(argument("who", EntityArgumentType.player())
@@ -131,10 +128,7 @@ public class BlossomWarps implements ModInitializer {
     }
 
     private int warpToName(CommandContext<ServerCommandSource> ctx, String warpName) throws CommandSyntaxException {
-        ServerPlayerEntity player = ctx.getSource().getPlayer();
-        if (player == null) {
-            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
-        }
+        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
         return warpPlayerToName(ctx, player, warpName);
     }
 
@@ -212,10 +206,7 @@ public class BlossomWarps implements ModInitializer {
 
     private int addWarpPlayerPos(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
-        ServerPlayerEntity player = ctx.getSource().getPlayer();
-        if (player == null) {
-            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
-        }
+        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
         return addWarp(ctx, new Warp(
             name, player,
             new TeleportUtils.TeleportDestination(player)
@@ -226,10 +217,7 @@ public class BlossomWarps implements ModInitializer {
         String name = StringArgumentType.getString(ctx, "name");
         Vec3d position = Vec3ArgumentType.getPosArgument(ctx, "position").toAbsolutePos(ctx.getSource());
         Vec2f rotation = RotationArgumentType.getRotation(ctx, "rotation").toAbsoluteRotation(ctx.getSource());
-        ServerPlayerEntity player = ctx.getSource().getPlayer();
-        if (player == null) {
-            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
-        }
+        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
         return addWarp(ctx, new Warp(
                 name, player,
                 new TeleportUtils.TeleportDestination(
@@ -253,10 +241,7 @@ public class BlossomWarps implements ModInitializer {
 
     private int addGlobalWarpPlayerPos(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
-        ServerPlayerEntity player = ctx.getSource().getPlayer();
-        if (player == null) {
-            throw ServerCommandSource.REQUIRES_PLAYER_EXCEPTION.create();
-        }
+        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
         return addWarp(ctx, new Warp(
                 name, player,
                 new TeleportUtils.TeleportDestination(player),
