@@ -1,0 +1,16 @@
+﻿{
+    "blossom.warps.add": "地標 %s 已成功添加!",
+    "blossom.warps.add.failed": "地標 %s 已存在!",
+    "blossom.warps.remove": "地標 %s 已成功移除!",
+    "blossom.warps.remove.failed": "地標 %s 移除失敗!",
+    "blossom.warps.list.dimension.empty": "沒有任何地標存在於 %s!",
+    "blossom.warps.list.all.empty": "當前沒有任何地標!",
+    "blossom.warps.list.all.header": "",
+    "blossom.warps.list.all.join": "\n",
+    "blossom.warps.list.header": "地標列表 %s:\n",
+    "blossom.warps.list.item": "%s",
+    "blossom.warps.list.item.before": "- ",
+    "blossom.warps.list.item.after": "",
+    "blossom.warps.list.item.join": "\n",
+    "blossom.warps.list.item.description": "按一下以進行傳送\n%s\nx: %4$s; y: %5$s; z: %6$s\n頭部水準偏航: %7$s; 頭部垂直俯仰: %8$s"
+  }
