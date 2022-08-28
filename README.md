@@ -54,3 +54,5 @@ only keys with available arguments are shown, for full list, please see
 - `blossom.warps.list.item.description`: 8 arguments - warp name, warp owner UUID, warp dimension key, warp x, warp y,
   warp z, warp yaw, warp pitch
 - `blossom.warps.list.dimension.empty`: 1 argument - dimension name
+
+`zh_cn` (Chinese, Simplified), `zh_tw` (Chinese, Traditional) - added by @BackWheel
