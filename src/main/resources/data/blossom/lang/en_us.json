@@ -3,6 +3,7 @@
   "blossom.warps.add.failed": "Warp %s already exists!",
   "blossom.warps.remove": "Warp %s has been successfully removed!",
   "blossom.warps.remove.failed": "Failed to remove %s!",
+  "blossom.warps.not-found": "Warp \"%s\" does not exist!",
   "blossom.warps.list.dimension.empty": "There are no warps in %s!",
   "blossom.warps.list.all.empty": "There are no warps!",
   "blossom.warps.list.all.header": "",

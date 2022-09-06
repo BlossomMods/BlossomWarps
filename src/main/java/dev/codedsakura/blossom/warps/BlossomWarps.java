@@ -108,8 +108,11 @@ public class BlossomWarps implements ModInitializer {
 
     private int warpPlayerToName(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity player, String warpName) {
         Warp warp = warpController.findWarp(warpName);
-        LOGGER.info("warp player [{}] to global {}", player.getUuid(), warp);
-        if (warp != null) {
+        LOGGER.debug("warp player [{}] to global {}", player.getUuid(), warp);
+
+        if (warp == null) {
+            TextUtils.sendErr(ctx, "blossom.warps.not-found", warpName);
+        } else {
             TeleportUtils.teleport(
                     CONFIG.teleportation,
                     CONFIG.standStill,
@@ -119,6 +122,7 @@ public class BlossomWarps implements ModInitializer {
                     () -> warp.toDestination(ctx.getSource().getServer())
             );
         }
+
         return Command.SINGLE_SUCCESS;
     }
 
@@ -134,7 +138,8 @@ public class BlossomWarps implements ModInitializer {
 
 
     MutableText listWarpsConcatenate(String world) {
-        MutableText result = warpController.getWarps().stream()
+        MutableText result = warpController.getWarps()
+                .stream()
                 .filter(warp -> warp.world.equals(world))
                 .map(warp -> TextUtils.translation("blossom.warps.list.item", warp.name)
                         .styled(style -> style

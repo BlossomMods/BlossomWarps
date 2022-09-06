@@ -1,3 +1,7 @@
+# 2.0.4
+
+* Add message for nonexistent warps (#4)
+
 # 2.0.3
 
 * Add Chinese translations (Simplified & Traditional), courtesy of @BackWheel
