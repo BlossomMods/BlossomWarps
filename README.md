@@ -40,6 +40,10 @@ the mod at least once.
     Permission: `blossom.warps.add` (default: OP level 2)
   - `remove <name>` - removes a warp called `<name>`  
     Permission: `blossom.warps.remove` (default: OP level 2)
+  - `add-global <name>` - add warp as global warp (accessible with `/<name>` after server restart, behavior not defined
+    if command `/<name>` already exists)  
+    Permission: `blossom.warps.add.global` (default: OP level 2)  
+    As well as each global warp has `blossom.warps.global.<name>` (default: true)
 
 ## Translation keys
 only keys with available arguments are shown, for full list, please see
