@@ -179,7 +179,7 @@ public class BlossomWarps implements ModInitializer {
                 .map(this::listWarpsConcatenate)
                 .collect(TextSuperJoiner.joiner(TextUtils.translation("blossom.warps.list.all.join")));
 
-        ctx.getSource().sendFeedback(TextUtils.translation("blossom.warps.list.all.header").append(result), false);
+        ctx.getSource().sendFeedback(() -> TextUtils.translation("blossom.warps.list.all.header").append(result), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -190,7 +190,7 @@ public class BlossomWarps implements ModInitializer {
             return Command.SINGLE_SUCCESS;
         }
 
-        ctx.getSource().sendFeedback(
+        ctx.getSource().sendFeedback(() ->
                 listWarpsConcatenate(dimension),
                 false
         );
