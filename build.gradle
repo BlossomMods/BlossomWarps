@@ -35,6 +35,7 @@ processResources {
     filesMatching("fabric.mod.json") {
         expand(
                 "version": project.version,
+                "supported_versions": project.supported_mc_versions.split(";").join("\",\""),
                 "blossomlib_version": project.blossomlib_version
         )
     }
