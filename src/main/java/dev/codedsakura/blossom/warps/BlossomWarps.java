@@ -109,9 +109,13 @@ public class BlossomWarps implements ModInitializer {
     private int warpPlayerToName(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity player, String warpName) {
         Warp warp = warpController.findWarp(warpName);
         LOGGER.debug("warp player [{}] to global {}", player.getUuid(), warp);
+        ServerPlayerEntity originatingPlayer = ctx.getSource().getPlayer();
+        String permission = String.format("blossom.warps.warp.to.%s", warpName);
 
         if (warp == null) {
             TextUtils.sendErr(ctx, "blossom.warps.not-found", warpName);
+        } else if (originatingPlayer != null && !Permissions.check(originatingPlayer, permission, true)) {
+                TextUtils.sendErr(ctx, "blossom.warps.not-permitted", warpName);
         } else {
             TeleportUtils.teleport(
                     CONFIG.teleportation,
@@ -137,8 +141,8 @@ public class BlossomWarps implements ModInitializer {
     }
 
 
-    MutableText listWarpsConcatenate(String world) {
-        MutableText result = warpController.getWarps()
+    MutableText listWarpsConcatenate(String world, ServerPlayerEntity player) {
+        MutableText result = warpController.getWarpableWarps(player)
                 .stream()
                 .filter(warp -> warp.world.equals(world))
                 .map(warp -> TextUtils.translation("blossom.warps.list.item", warp.name)
@@ -167,16 +171,16 @@ public class BlossomWarps implements ModInitializer {
     }
 
     private int listWarpsAll(CommandContext<ServerCommandSource> ctx) {
-        List<Warp> warps = warpController.getWarps();
+        List<Warp> warps = warpController.getWarpableWarps(ctx.getSource().getPlayer());
         if (warps.size() == 0) {
             TextUtils.sendErr(ctx, "blossom.warps.list.all.empty");
             return Command.SINGLE_SUCCESS;
         }
-
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
         MutableText result = warps.stream()
                 .map(warp -> warp.world)
                 .distinct()
-                .map(this::listWarpsConcatenate)
+                .map(world -> this.listWarpsConcatenate(world, player))
                 .collect(TextSuperJoiner.joiner(TextUtils.translation("blossom.warps.list.all.join")));
 
         ctx.getSource().sendFeedback(() -> TextUtils.translation("blossom.warps.list.all.header").append(result), false);
@@ -185,13 +189,15 @@ public class BlossomWarps implements ModInitializer {
 
     private int listWarpsDim(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         String dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue().toString();
-        if (warpController.getWarps().stream().noneMatch(warp -> warp.world.equals(dimension))) {
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+
+        if (warpController.getWarpableWarps(player).stream().noneMatch(warp -> warp.world.equals(dimension))) {
             TextUtils.sendErr(ctx, "blossom.warps.list.dimension.empty", dimension);
             return Command.SINGLE_SUCCESS;
         }
 
         ctx.getSource().sendFeedback(() ->
-                listWarpsConcatenate(dimension),
+                listWarpsConcatenate(dimension, player),
                 false
         );
         return Command.SINGLE_SUCCESS;
