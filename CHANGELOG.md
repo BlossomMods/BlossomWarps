@@ -1,3 +1,7 @@
+# 2.0.5
+
+* Update to support 1.20.2
+
 # 2.0.4
 
 * Add message for nonexistent warps (#4)
