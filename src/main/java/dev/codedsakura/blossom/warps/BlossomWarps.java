@@ -2,6 +2,7 @@ package dev.codedsakura.blossom.warps;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -19,16 +20,19 @@ import net.minecraft.command.argument.DimensionArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.RotationArgumentType;
 import net.minecraft.command.argument.Vec3ArgumentType;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
+import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import org.apache.logging.log4j.core.Logger;
 
+import java.io.File;
 import java.util.List;
 import java.util.Optional;
 
@@ -88,7 +92,13 @@ public class BlossomWarps implements ModInitializer {
                         .requires(Permissions.require("blossom.warps.remove", 2))
                         .then(argument("warp", StringArgumentType.string())
                                 .suggests(warpController)
-                                .executes(this::removeWarp))));
+                                .executes(this::removeWarp)))
+
+                .then(literal("load-legacy")
+                        .requires(Permissions.require("blossom.warps.load-legacy", 4))
+                        .executes(this::loadLegacyDefault)
+                        .then(argument("overwrite", BoolArgumentType.bool())
+                                .executes(this::loadLegacyArgument))));
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             CommandDispatcher<ServerCommandSource> dispatcher = server.getCommandManager().getDispatcher();
@@ -274,5 +284,73 @@ public class BlossomWarps implements ModInitializer {
             TextUtils.sendErr(ctx, "blossom.warps.remove.failed", warpName);
         }
         return Command.SINGLE_SUCCESS;
+    }
+
+
+    private int loadLegacy(CommandContext<ServerCommandSource> ctx, boolean overwrite) {
+        TextUtils.sendOps(ctx, "blossom.homes.load-legacy.info");
+
+        if (overwrite) {
+            TextUtils.sendOps(ctx, "blossom.homes.load-legacy.overwrite");
+        }
+
+        MinecraftServer server = ctx.getSource().getServer();
+
+        File[] playerDataFiles = server.getSavePath(WorldSavePath.LEVEL_DAT).toFile().listFiles();
+
+        int totalHomes = 0, totalPlayers = 0;
+
+//        try {
+//            assert playerDataFiles != null;
+//            for (File playerDataFile : playerDataFiles) {
+//                NbtCompound data = NbtIo.readCompressed(playerDataFile);
+//
+//                if (!data.contains("cardinal_components")) {
+//                    continue;
+//                }
+//                data = data.getCompound("cardinal_components");
+//
+//                if (!data.contains("fabrichomes:homes")) {
+//                    continue;
+//                }
+//                var homes = data.getCompound("fabrichomes:homes")
+//                        .getList("homes", NbtElement.COMPOUND_TYPE)
+//                        .stream()
+//                        .map(home -> {
+//                            String name = ((NbtCompound) home).getString("name");
+//                            String world = ((NbtCompound) home).getString("dim");
+//                            double x = ((NbtCompound) home).getFloat("x");
+//                            double y = ((NbtCompound) home).getFloat("y");
+//                            double z = ((NbtCompound) home).getFloat("z");
+//                            float yaw = ((NbtCompound) home).getFloat("yaw");
+//                            float pitch = ((NbtCompound) home).getFloat("pitch");
+//                            return new Home(name, world, x, y, z, yaw, pitch);
+//                        })
+//                        .toList();
+//
+//                UUID uuid = UUID.fromString(FilenameUtils.removeExtension(playerDataFile.getName()));
+//
+//                totalPlayers++;
+//                totalHomes += homes.size();
+//
+//                homeController.appendHomes(uuid, homes, overwrite);
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            throw new RuntimeException(e);
+//        }
+
+        TextUtils.sendOps(ctx, "blossom.homes.load-legacy.done", totalHomes, totalPlayers);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int loadLegacyArgument(CommandContext<ServerCommandSource> ctx) {
+        boolean overwrite = BoolArgumentType.getBool(ctx, "overwrite");
+
+        return loadLegacy(ctx, overwrite);
+    }
+
+    private int loadLegacyDefault(CommandContext<ServerCommandSource> ctx) {
+        return loadLegacy(ctx, false);
     }
 }
