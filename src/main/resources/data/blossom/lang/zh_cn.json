@@ -4,6 +4,7 @@
   "blossom.warps.remove": "地标 %s 已成功移除!",
   "blossom.warps.remove.failed": "地标 %s 移除失败!",
   "blossom.warps.not-found": "地标 \"%s\"并不存在!",
+  "blossom.warps.not-permitted": "地标 \"%s\"并不存在!",
   "blossom.warps.list.dimension.empty": "没有任何地标存在于 %s!",
   "blossom.warps.list.all.empty": "当前没有任何地标!",
   "blossom.warps.list.all.header": "",
