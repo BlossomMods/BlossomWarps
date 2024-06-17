@@ -79,7 +79,7 @@ class Warp {
 }
 
 class WarpController extends ListDataController<Warp> implements SuggestionProvider<ServerCommandSource> {
-    private final String PERMISSION = "blossom.warps.command.warp.to.%s";
+    private final String PERMISSION = "blossom.warps.warp.%s";
 
     @Override
     public List<Warp> defaultData() {
@@ -139,7 +139,8 @@ class WarpController extends ListDataController<Warp> implements SuggestionProvi
                         .map(p -> (Function<String, Boolean>) ((String perm) -> Permissions.check(p, PERMISSION.formatted(perm), true)))
                         .orElse(_perm -> true);
 
-        return data
+        return Optional.ofNullable(data)
+                .orElse(List.of())
                 .stream()
                 .filter(w -> checkPerm.apply(w.name))
                 .toList();

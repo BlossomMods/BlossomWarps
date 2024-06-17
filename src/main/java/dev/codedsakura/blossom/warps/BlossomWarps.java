@@ -25,7 +25,6 @@ import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.List;
-import java.util.Optional;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -48,7 +47,7 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
         this.register();
 
         addCommand(literal("warp")
-                .requires(Permissions.require("blossom.warps.command.warp", true))
+                .requires(Permissions.require("blossom.warps.command.warp.base", true))
                 .then(argument("warp", StringArgumentType.string())
                     .suggests(warpController)
                     .executes(ctx -> {
@@ -61,9 +60,10 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
 
 
         addCommand(literal("warps")
-                .requires(Permissions.require("blossom.warps.command.warps", true))
+                .requires(Permissions.require("blossom.warps.command.warps.base", true))
                 .executes(this::listWarpsAll)
                 .then(literal("list")
+                        .requires(Permissions.require("blossom.warps.command.warps.list", true))
                         .executes(this::listWarpsAll)
                         .then(argument("dimension", DimensionArgumentType.dimension())
                                 .executes(this::listWarpsDim)))
@@ -93,14 +93,14 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
                                 .suggests(warpController)
                                 .executes(this::removeWarp))));
 
-        Optional.ofNullable(warpController.getWarps(null))
-                .orElse(List.of())
-                .stream()
-                .filter(v -> v.global)
-                .map(v -> v.name)
-                .forEach(warpName -> addCommand(literal(warpName)
-                        .requires(Permissions.require("blossom.warps.global-warp.%s".formatted(warpName), true))
-                        .executes(ctx -> warpToName(ctx, warpName))));
+        registerCommand(dispatcher ->
+                warpController.getWarps(null)
+                        .stream()
+                        .filter(v -> v.global)
+                        .map(v -> v.name)
+                        .forEach(warpName -> dispatcher.register(literal(warpName)
+                                .requires(Permissions.require("blossom.warps.global-warp.%s".formatted(warpName), true))
+                                .executes(ctx -> warpToName(ctx, warpName)))));
     }
 
 
