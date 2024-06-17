@@ -48,7 +48,7 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
         this.register();
 
         addCommand(literal("warp")
-                .requires(Permissions.require("blossom.warps.warp", true))
+                .requires(Permissions.require("blossom.warps.command.warp", true))
                 .then(argument("warp", StringArgumentType.string())
                     .suggests(warpController)
                     .executes(ctx -> {
@@ -56,12 +56,12 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
                         return this.warpPlayer(ctx, player);
                     })
                         .then(argument("who", EntityArgumentType.player())
-                                .requires(Permissions.require("blossom.warps.warp.others", 2))
+                                .requires(Permissions.require("blossom.warps.command.warp.others", 2))
                                 .executes(ctx -> this.warpPlayer(ctx, EntityArgumentType.getPlayer(ctx, "who"))))));
 
 
         addCommand(literal("warps")
-                .requires(Permissions.require("blossom.warps.warps", true))
+                .requires(Permissions.require("blossom.warps.command.warps", true))
                 .executes(this::listWarpsAll)
                 .then(literal("list")
                         .executes(this::listWarpsAll)
@@ -69,7 +69,7 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
                                 .executes(this::listWarpsDim)))
 
                 .then(literal("add")
-                        .requires(Permissions.require("blossom.warps.add", 2))
+                        .requires(Permissions.require("blossom.warps.command.warps.add", 2))
                         .then(argument("name", StringArgumentType.string())
                                 .executes(this::addWarpPlayerPos)
                                 .then(argument("position", Vec3ArgumentType.vec3(true))
@@ -78,7 +78,7 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
                                                 .then(argument("dimension", DimensionArgumentType.dimension())
                                                         .executes(this::addWarpDimension))))))
                 .then(literal("add-global")
-                        .requires(Permissions.require("blossom.warps.add.global", 2))
+                        .requires(Permissions.require("blossom.warps.command.warps.add-global", 2))
                         .then(argument("name", StringArgumentType.string())
                                 .executes(this::addGlobalWarpPlayerPos)
                                 .then(argument("position", Vec3ArgumentType.vec3(true))
@@ -88,24 +88,24 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
                                                         .executes(this::addGlobalWarpDimension))))))
 
                 .then(literal("remove")
-                        .requires(Permissions.require("blossom.warps.remove", 2))
+                        .requires(Permissions.require("blossom.warps.command.warps.remove", 2))
                         .then(argument("warp", StringArgumentType.string())
                                 .suggests(warpController)
                                 .executes(this::removeWarp))));
 
-        Optional.ofNullable(warpController.getWarps())
+        Optional.ofNullable(warpController.getWarps(null))
                 .orElse(List.of())
                 .stream()
                 .filter(v -> v.global)
                 .map(v -> v.name)
                 .forEach(warpName -> addCommand(literal(warpName)
-                        .requires(Permissions.require("blossom.warps.global." + warpName, true))
+                        .requires(Permissions.require("blossom.warps.global-warp.%s".formatted(warpName), true))
                         .executes(ctx -> warpToName(ctx, warpName))));
     }
 
 
     private int warpPlayerToName(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity player, String warpName) {
-        Warp warp = warpController.findWarp(warpName);
+        Warp warp = warpController.findWarp(ctx.getSource().getPlayer(), warpName);
         logger.debug("warp player [{}] to {}", player.getUuid(), warp);
 
         if (warp == null) {
@@ -133,8 +133,8 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
     }
 
 
-    MutableText listWarpsConcatenate(String world) {
-        MutableText result = warpController.getWarps()
+    MutableText listWarpsConcatenate(ServerPlayerEntity player, String world) {
+        MutableText result = warpController.getWarps(player)
                 .stream()
                 .filter(warp -> warp.world.equals(world))
                 .map(warp -> TextUtils.translation("blossom.warps.list.item", warp.name)
@@ -163,7 +163,8 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
     }
 
     private int listWarpsAll(CommandContext<ServerCommandSource> ctx) {
-        List<Warp> warps = warpController.getWarps();
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        List<Warp> warps = warpController.getWarps(player);
         if (warps.size() == 0) {
             TextUtils.sendErr(ctx, "blossom.warps.list.all.empty");
             return Command.SINGLE_SUCCESS;
@@ -172,7 +173,7 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
         MutableText result = warps.stream()
                 .map(warp -> warp.world)
                 .distinct()
-                .map(this::listWarpsConcatenate)
+                .map((String world) -> listWarpsConcatenate(player, world))
                 .collect(TextSuperJoiner.joiner(TextUtils.translation("blossom.warps.list.all.join")));
 
         TextUtils.sendRaw(ctx, TextUtils.translation("blossom.warps.list.all.header").append(result));
@@ -181,12 +182,13 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
 
     private int listWarpsDim(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         String dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue().toString();
-        if (warpController.getWarps().stream().noneMatch(warp -> warp.world.equals(dimension))) {
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if (warpController.getWarps(player).stream().noneMatch(warp -> warp.world.equals(dimension))) {
             TextUtils.sendErr(ctx, "blossom.warps.list.dimension.empty", dimension);
             return Command.SINGLE_SUCCESS;
         }
 
-        TextUtils.sendRaw(ctx, listWarpsConcatenate(dimension));
+        TextUtils.sendRaw(ctx, listWarpsConcatenate(player, dimension));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -259,7 +261,7 @@ public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModI
 
     private int removeWarp(CommandContext<ServerCommandSource> ctx) {
         String warpName = StringArgumentType.getString(ctx, "warp");
-        logger.info("removing warp {}", warpController.findWarp(warpName));
+        logger.info("removing warp {}", warpController.findWarp(null, warpName));
         boolean result = warpController.removeWarp(warpName);
         if (result) {
             TextUtils.sendWarnOps(ctx, "blossom.warps.remove", warpName);
