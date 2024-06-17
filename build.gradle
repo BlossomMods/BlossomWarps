@@ -4,8 +4,6 @@ plugins {
     id "com.modrinth.minotaur" version "2.+"
 }
 
-var mc_version = project.supported_versions.split(";")[0]
-version = "${project.mod_version}+${mc_version}"
 group = project.maven_group
 
 repositories {
@@ -22,7 +20,7 @@ dependencies {
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}+${project.minecraft_version}"
 
-    modImplementation "dev.codedsakura.blossom:blossom-lib:${project.blossomlib_version}+${mc_version}"
+    modImplementation "dev.codedsakura.blossom:blossom-lib:${project.blossomlib_version}"
 }
 
 processResources {
@@ -33,7 +31,6 @@ processResources {
         expand(
                 "version": project.version,
                 "blossomlib_version": project.blossomlib_version,
-                "supported_versions": project.supported_versions.split(";").join("\",\""),
         )
     }
 }
@@ -51,7 +48,7 @@ java {
 
 jar {
     from("LICENSE") {
-        rename { "${it}_${project.archivesBaseName}" }
+        rename { "${it}_${project.archives_base_name}" }
     }
 }
 

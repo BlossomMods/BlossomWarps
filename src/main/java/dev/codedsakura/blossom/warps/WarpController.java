@@ -5,13 +5,13 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import dev.codedsakura.blossom.lib.data.ListDataController;
+import dev.codedsakura.blossom.lib.polyfill.IdentifierPolyfill;
 import dev.codedsakura.blossom.lib.teleport.TeleportUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +68,7 @@ class Warp {
 
     TeleportUtils.TeleportDestination toDestination(MinecraftServer server) {
         return new TeleportUtils.TeleportDestination(
-                server.getWorld(RegistryKey.of(RegistryKeys.WORLD, new Identifier(this.world))),
+                server.getWorld(RegistryKey.of(RegistryKeys.WORLD, IdentifierPolyfill.of(this.world))),
                 x, y, z, yaw, pitch
         );
     }

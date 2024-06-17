@@ -1,54 +1,53 @@
 package dev.codedsakura.blossom.warps;
 
 import com.mojang.brigadier.Command;
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import dev.codedsakura.blossom.lib.BlossomLib;
-import dev.codedsakura.blossom.lib.config.BlossomConfig;
+import dev.codedsakura.blossom.lib.mod.BlossomMod;
 import dev.codedsakura.blossom.lib.permissions.Permissions;
 import dev.codedsakura.blossom.lib.teleport.TeleportUtils;
 import dev.codedsakura.blossom.lib.text.DimName;
 import dev.codedsakura.blossom.lib.text.TextSuperJoiner;
 import dev.codedsakura.blossom.lib.text.TextUtils;
-import dev.codedsakura.blossom.lib.utils.CustomLogger;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.command.argument.DimensionArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.RotationArgumentType;
 import net.minecraft.command.argument.Vec3ArgumentType;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
-import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
-import org.apache.logging.log4j.core.Logger;
 
-import java.io.File;
 import java.util.List;
 import java.util.Optional;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
-public class BlossomWarps implements ModInitializer {
-    static BlossomWarpsConfig CONFIG = BlossomConfig.load(BlossomWarpsConfig.class, "BlossomWarps.json");
-    public static final Logger LOGGER = CustomLogger.createLogger("BlossomWarps");
+public class BlossomWarps extends BlossomMod<BlossomWarpsConfig> implements ModInitializer {
     static WarpController warpController;
+
+    @Override
+    public String getName() {
+        return "BlossomWarps";
+    }
+
+    public BlossomWarps() {
+        super(BlossomWarpsConfig.class);
+    }
 
     @Override
     public void onInitialize() {
         warpController = new WarpController();
+        this.register();
 
-        BlossomLib.addCommand(literal("warp")
+        addCommand(literal("warp")
                 .requires(Permissions.require("blossom.warps.warp", true))
                 .then(argument("warp", StringArgumentType.string())
                     .suggests(warpController)
@@ -61,7 +60,7 @@ public class BlossomWarps implements ModInitializer {
                                 .executes(ctx -> this.warpPlayer(ctx, EntityArgumentType.getPlayer(ctx, "who"))))));
 
 
-        BlossomLib.addCommand(literal("warps")
+        addCommand(literal("warps")
                 .requires(Permissions.require("blossom.warps.warps", true))
                 .executes(this::listWarpsAll)
                 .then(literal("list")
@@ -92,41 +91,28 @@ public class BlossomWarps implements ModInitializer {
                         .requires(Permissions.require("blossom.warps.remove", 2))
                         .then(argument("warp", StringArgumentType.string())
                                 .suggests(warpController)
-                                .executes(this::removeWarp)))
+                                .executes(this::removeWarp))));
 
-                .then(literal("load-legacy")
-                        .requires(Permissions.require("blossom.warps.load-legacy", 4))
-                        .executes(this::loadLegacyDefault)
-                        .then(argument("overwrite", BoolArgumentType.bool())
-                                .executes(this::loadLegacyArgument))));
-
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            CommandDispatcher<ServerCommandSource> dispatcher = server.getCommandManager().getDispatcher();
-            LOGGER.debug(warpController.getWarps());
-            Optional.ofNullable(warpController.getWarps())
-                    .orElse(List.of())
-                    .stream()
-                    .filter(v -> v.global)
-                    .map(v -> v.name)
-                    .forEach(warpName -> dispatcher
-                            .register(literal(warpName)
-                                    .requires(Permissions.require("blossom.warps.global." + warpName, true))
-                                    .executes(ctx -> warpToName(ctx, warpName))));
-        });
+        Optional.ofNullable(warpController.getWarps())
+                .orElse(List.of())
+                .stream()
+                .filter(v -> v.global)
+                .map(v -> v.name)
+                .forEach(warpName -> addCommand(literal(warpName)
+                        .requires(Permissions.require("blossom.warps.global." + warpName, true))
+                        .executes(ctx -> warpToName(ctx, warpName))));
     }
 
 
     private int warpPlayerToName(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity player, String warpName) {
         Warp warp = warpController.findWarp(warpName);
-        LOGGER.debug("warp player [{}] to global {}", player.getUuid(), warp);
+        logger.debug("warp player [{}] to {}", player.getUuid(), warp);
 
         if (warp == null) {
             TextUtils.sendErr(ctx, "blossom.warps.not-found", warpName);
         } else {
             TeleportUtils.teleport(
-                    CONFIG.teleportation,
-                    CONFIG.standStill,
-                    CONFIG.cooldown,
+                    config.teleportation,
                     BlossomWarps.class,
                     player,
                     () -> warp.toDestination(ctx.getSource().getServer())
@@ -189,7 +175,7 @@ public class BlossomWarps implements ModInitializer {
                 .map(this::listWarpsConcatenate)
                 .collect(TextSuperJoiner.joiner(TextUtils.translation("blossom.warps.list.all.join")));
 
-        ctx.getSource().sendFeedback(() -> TextUtils.translation("blossom.warps.list.all.header").append(result), false);
+        TextUtils.sendRaw(ctx, TextUtils.translation("blossom.warps.list.all.header").append(result));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -200,16 +186,13 @@ public class BlossomWarps implements ModInitializer {
             return Command.SINGLE_SUCCESS;
         }
 
-        ctx.getSource().sendFeedback(() ->
-                listWarpsConcatenate(dimension),
-                false
-        );
+        TextUtils.sendRaw(ctx, listWarpsConcatenate(dimension));
         return Command.SINGLE_SUCCESS;
     }
 
 
     private int addWarp(CommandContext<ServerCommandSource> ctx, Warp warp) {
-        LOGGER.info("adding warp {}", warp);
+        logger.info("adding warp {}", warp);
         boolean result = warpController.addWarp(warp);
         if (result) {
             TextUtils.sendSuccessOps(ctx, "blossom.warps.add", warp.name);
@@ -276,7 +259,7 @@ public class BlossomWarps implements ModInitializer {
 
     private int removeWarp(CommandContext<ServerCommandSource> ctx) {
         String warpName = StringArgumentType.getString(ctx, "warp");
-        LOGGER.info("removing warp {}", warpController.findWarp(warpName));
+        logger.info("removing warp {}", warpController.findWarp(warpName));
         boolean result = warpController.removeWarp(warpName);
         if (result) {
             TextUtils.sendWarnOps(ctx, "blossom.warps.remove", warpName);
@@ -284,73 +267,5 @@ public class BlossomWarps implements ModInitializer {
             TextUtils.sendErr(ctx, "blossom.warps.remove.failed", warpName);
         }
         return Command.SINGLE_SUCCESS;
-    }
-
-
-    private int loadLegacy(CommandContext<ServerCommandSource> ctx, boolean overwrite) {
-        TextUtils.sendOps(ctx, "blossom.homes.load-legacy.info");
-
-        if (overwrite) {
-            TextUtils.sendOps(ctx, "blossom.homes.load-legacy.overwrite");
-        }
-
-        MinecraftServer server = ctx.getSource().getServer();
-
-        File[] playerDataFiles = server.getSavePath(WorldSavePath.LEVEL_DAT).toFile().listFiles();
-
-        int totalHomes = 0, totalPlayers = 0;
-
-//        try {
-//            assert playerDataFiles != null;
-//            for (File playerDataFile : playerDataFiles) {
-//                NbtCompound data = NbtIo.readCompressed(playerDataFile);
-//
-//                if (!data.contains("cardinal_components")) {
-//                    continue;
-//                }
-//                data = data.getCompound("cardinal_components");
-//
-//                if (!data.contains("fabrichomes:homes")) {
-//                    continue;
-//                }
-//                var homes = data.getCompound("fabrichomes:homes")
-//                        .getList("homes", NbtElement.COMPOUND_TYPE)
-//                        .stream()
-//                        .map(home -> {
-//                            String name = ((NbtCompound) home).getString("name");
-//                            String world = ((NbtCompound) home).getString("dim");
-//                            double x = ((NbtCompound) home).getFloat("x");
-//                            double y = ((NbtCompound) home).getFloat("y");
-//                            double z = ((NbtCompound) home).getFloat("z");
-//                            float yaw = ((NbtCompound) home).getFloat("yaw");
-//                            float pitch = ((NbtCompound) home).getFloat("pitch");
-//                            return new Home(name, world, x, y, z, yaw, pitch);
-//                        })
-//                        .toList();
-//
-//                UUID uuid = UUID.fromString(FilenameUtils.removeExtension(playerDataFile.getName()));
-//
-//                totalPlayers++;
-//                totalHomes += homes.size();
-//
-//                homeController.appendHomes(uuid, homes, overwrite);
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            throw new RuntimeException(e);
-//        }
-
-        TextUtils.sendOps(ctx, "blossom.homes.load-legacy.done", totalHomes, totalPlayers);
-        return Command.SINGLE_SUCCESS;
-    }
-
-    private int loadLegacyArgument(CommandContext<ServerCommandSource> ctx) {
-        boolean overwrite = BoolArgumentType.getBool(ctx, "overwrite");
-
-        return loadLegacy(ctx, overwrite);
-    }
-
-    private int loadLegacyDefault(CommandContext<ServerCommandSource> ctx) {
-        return loadLegacy(ctx, false);
     }
 }
