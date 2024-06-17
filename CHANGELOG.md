@@ -1,3 +1,8 @@
+# 3.0.0
+
+* Upgrade to BlossomMods v3
+* Add per-warp permissions
+
 # 2.0.7
 
 * Update to support 1.20.6
