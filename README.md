@@ -29,9 +29,10 @@ the mod at least once.
 ## Commands & their permissions
 
 - `/warp <warp>` - alias of `/warp <warp> {self}`  
-  Permission: `blossom.warps.warp` (default: true)
+  Permission: `blossom.warps.warp` (default: true), `blossom.warps.warp.to.<warp>` (default: true)
+  > You can set `blossom.warps.warp.to.*` to false to make `blossom.warp.warp.to.<warp>` false by default.
 - `/warp <warp> <who>` - teleport a player to a warp point called `<warp>`  
-  Permission: `blossom.warps.warp.others` (default: OP level 2)
+  Permission: `blossom.warps.warp.others` (default: OP level 2), `blossom.warps.warp.to.<warp>` (default: true)
 - `/warps` - alias of `/warps list`  
   Permission: `blossom.warps.warps` (default: true)
   - `list` - list all available warps

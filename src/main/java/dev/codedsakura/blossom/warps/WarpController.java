@@ -5,6 +5,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import dev.codedsakura.blossom.lib.data.ListDataController;
+import dev.codedsakura.blossom.lib.permissions.Permissions;
 import dev.codedsakura.blossom.lib.teleport.TeleportUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.RegistryKey;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 class Warp {
     public String name;
@@ -94,7 +96,7 @@ class WarpController extends ListDataController<Warp> implements SuggestionProvi
     @Override
     public CompletableFuture<Suggestions> getSuggestions(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
         String start = builder.getRemaining().toLowerCase();
-        data.stream()
+        this.getWarpableWarps(context.getSource().getPlayer()).stream()
                 .map(v -> v.name)
                 .sorted(String::compareToIgnoreCase)
                 .filter(pair -> pair.toLowerCase().startsWith(start))
@@ -122,6 +124,18 @@ class WarpController extends ListDataController<Warp> implements SuggestionProvi
 
     List<Warp> getWarps() {
         return data;
+    }
+
+    List<Warp> getWarpableWarps(PlayerEntity player) {
+//        we know that the use must be permitted to run /warps to run /warps list
+        boolean isFPAPILoaded = Permissions.check(player, "blossom.warps.warps", false);
+        if (!isFPAPILoaded) {
+            return data;
+        } else {
+            return data.stream()
+                    .filter(warp -> Permissions.check(player, String.format("blossom.warps.warp.to.%s",warp.name), false))
+                    .collect(Collectors.toList());
+        }
     }
 
     boolean removeWarp(String name) {
