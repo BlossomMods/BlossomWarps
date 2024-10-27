@@ -230,8 +230,8 @@ public class BlossomWarps implements ModInitializer {
 
     private int addWarpPosRotDim(CommandContext<ServerCommandSource> ctx, ServerWorld dimension, boolean global) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
-        Vec3d position = Vec3ArgumentType.getPosArgument(ctx, "position").toAbsolutePos(ctx.getSource());
-        Vec2f rotation = RotationArgumentType.getRotation(ctx, "rotation").toAbsoluteRotation(ctx.getSource());
+        Vec3d position = Vec3ArgumentType.getPosArgument(ctx, "position").getPos(ctx.getSource());
+        Vec2f rotation = RotationArgumentType.getRotation(ctx, "rotation").getRotation(ctx.getSource());
         ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
         return addWarp(ctx, new Warp(
                 name, player,
