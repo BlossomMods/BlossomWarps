@@ -100,19 +100,21 @@ public class BlossomWarps implements ModInitializer {
                         .then(argument("overwrite", BoolArgumentType.bool())
                                 .executes(this::loadLegacyArgument))));
 
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            CommandDispatcher<ServerCommandSource> dispatcher = server.getCommandManager().getDispatcher();
-            LOGGER.debug(warpController.getWarps());
-            Optional.ofNullable(warpController.getWarps())
-                    .orElse(List.of())
-                    .stream()
-                    .filter(v -> v.global)
-                    .map(v -> v.name)
-                    .forEach(warpName -> dispatcher
-                            .register(literal(warpName)
-                                    .requires(Permissions.require("blossom.warps.global." + warpName, true))
-                                    .executes(ctx -> warpToName(ctx, warpName))));
-        });
+        if (CONFIG.addShorthands) {
+            ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+                CommandDispatcher<ServerCommandSource> dispatcher = server.getCommandManager().getDispatcher();
+                LOGGER.debug(warpController.getWarps());
+                Optional.ofNullable(warpController.getWarps())
+                        .orElse(List.of())
+                        .stream()
+                        .filter(v -> v.global)
+                        .map(v -> v.name)
+                        .forEach(warpName -> dispatcher
+                                .register(literal(warpName)
+                                        .requires(Permissions.require("blossom.warps.global." + warpName, true))
+                                        .executes(ctx -> warpToName(ctx, warpName))));
+            });
+        }
     }
 
 

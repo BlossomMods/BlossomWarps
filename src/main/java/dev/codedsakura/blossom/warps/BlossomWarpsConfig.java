@@ -7,4 +7,5 @@ public class BlossomWarpsConfig {
 
     int standStill = 3;
     int cooldown = 30;
+    boolean addShorthands = false;
 }

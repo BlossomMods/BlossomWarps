@@ -25,6 +25,9 @@ the mod at least once.
 `standStill`: int - (seconds), how long the player has to stand still before being teleported  
 `cooldown`: int - (seconds), how long the player has to wait after teleporting using this command, before
   being able to teleport again
+`addShorthands`: boolean - whether to automatically add warp shorthands (`/<warp name>`) to global warps
+  Note that shorthands are only added after a server restart. May conflict with existing commands if a
+  warp has the same name as a command.
 
 ## Commands & their permissions
 
