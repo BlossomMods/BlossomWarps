@@ -153,9 +153,8 @@ public class BlossomWarps implements ModInitializer {
                 .filter(warp -> warp.world.equals(world))
                 .map(warp -> TextUtils.translation("blossom.warps.list.item", warp.name)
                         .styled(style -> style
-                                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/warp " + warp.name))
-                                .withHoverEvent(new HoverEvent(
-                                        HoverEvent.Action.SHOW_TEXT,
+                                .withClickEvent(new ClickEvent.SuggestCommand("/warp " + warp.name))
+                                .withHoverEvent(new HoverEvent.ShowText(
                                         TextUtils.translation(
                                                 "blossom.warps.list.item.description",
                                                 warp.name,
