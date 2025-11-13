@@ -13,5 +13,5 @@
   "blossom.warps.list.item.before": "- ",
   "blossom.warps.list.item.after": "",
   "blossom.warps.list.item.join": "\n",
-  "blossom.warps.list.item.description": "单击以进行传送\n%s\nx: %4$s; y: %5$s; z: %6$s\n头部水平偏航: %7$s; 头部垂直俯仰: %8$s"
+  "blossom.warps.list.item.description": "点击以传送\n%s\nx: %4$s; y: %5$s; z: %6$s\nyaw: %7$s; pitch: %8$s"
 }
