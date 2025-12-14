@@ -16,28 +16,28 @@ import dev.codedsakura.blossom.lib.text.TextUtils;
 import dev.codedsakura.blossom.lib.utils.CustomLogger;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.command.argument.DimensionArgumentType;
-import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.command.argument.RotationArgumentType;
-import net.minecraft.command.argument.Vec3ArgumentType;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.DimensionArgument;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.coordinates.RotationArgument;
+import net.minecraft.commands.arguments.coordinates.Vec3Argument;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.util.WorldSavePath;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 import org.apache.logging.log4j.core.Logger;
 
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class BlossomWarps implements ModInitializer {
     static BlossomWarpsConfig CONFIG = BlossomConfig.load(BlossomWarpsConfig.class, "BlossomWarps.json");
@@ -53,12 +53,12 @@ public class BlossomWarps implements ModInitializer {
                 .then(argument("warp", StringArgumentType.string())
                     .suggests(warpController)
                     .executes(ctx -> {
-                        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                        ServerPlayer player = ctx.getSource().getPlayerOrException();
                         return this.warpPlayer(ctx, player);
                     })
-                        .then(argument("who", EntityArgumentType.player())
+                        .then(argument("who", EntityArgument.player())
                                 .requires(Permissions.require("blossom.warps.warp.others", 2))
-                                .executes(ctx -> this.warpPlayer(ctx, EntityArgumentType.getPlayer(ctx, "who"))))));
+                                .executes(ctx -> this.warpPlayer(ctx, EntityArgument.getPlayer(ctx, "who"))))));
 
 
         BlossomLib.addCommand(literal("warps")
@@ -66,26 +66,26 @@ public class BlossomWarps implements ModInitializer {
                 .executes(this::listWarpsAll)
                 .then(literal("list")
                         .executes(this::listWarpsAll)
-                        .then(argument("dimension", DimensionArgumentType.dimension())
+                        .then(argument("dimension", DimensionArgument.dimension())
                                 .executes(this::listWarpsDim)))
 
                 .then(literal("add")
                         .requires(Permissions.require("blossom.warps.add", 2))
                         .then(argument("name", StringArgumentType.string())
                                 .executes(this::addWarpPlayerPos)
-                                .then(argument("position", Vec3ArgumentType.vec3(true))
-                                        .then(argument("rotation", RotationArgumentType.rotation())
+                                .then(argument("position", Vec3Argument.vec3(true))
+                                        .then(argument("rotation", RotationArgument.rotation())
                                                 .executes(this::addWarpPosRot)
-                                                .then(argument("dimension", DimensionArgumentType.dimension())
+                                                .then(argument("dimension", DimensionArgument.dimension())
                                                         .executes(this::addWarpDimension))))))
                 .then(literal("add-global")
                         .requires(Permissions.require("blossom.warps.add.global", 2))
                         .then(argument("name", StringArgumentType.string())
                                 .executes(this::addGlobalWarpPlayerPos)
-                                .then(argument("position", Vec3ArgumentType.vec3(true))
-                                        .then(argument("rotation", RotationArgumentType.rotation())
+                                .then(argument("position", Vec3Argument.vec3(true))
+                                        .then(argument("rotation", RotationArgument.rotation())
                                                 .executes(this::addGlobalWarpPosRot)
-                                                .then(argument("dimension", DimensionArgumentType.dimension())
+                                                .then(argument("dimension", DimensionArgument.dimension())
                                                         .executes(this::addGlobalWarpDimension))))))
 
                 .then(literal("remove")
@@ -101,7 +101,7 @@ public class BlossomWarps implements ModInitializer {
                                 .executes(this::loadLegacyArgument))));
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            CommandDispatcher<ServerCommandSource> dispatcher = server.getCommandManager().getDispatcher();
+            CommandDispatcher<CommandSourceStack> dispatcher = server.getCommands().getDispatcher();
             LOGGER.debug(warpController.getWarps());
             Optional.ofNullable(warpController.getWarps())
                     .orElse(List.of())
@@ -116,9 +116,9 @@ public class BlossomWarps implements ModInitializer {
     }
 
 
-    private int warpPlayerToName(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity player, String warpName) {
+    private int warpPlayerToName(CommandContext<CommandSourceStack> ctx, ServerPlayer player, String warpName) {
         Warp warp = warpController.findWarp(warpName);
-        LOGGER.debug("warp player [{}] to global {}", player.getUuid(), warp);
+        LOGGER.debug("warp player [{}] to global {}", player.getUUID(), warp);
 
         if (warp == null) {
             TextUtils.sendErr(ctx, "blossom.warps.not-found", warpName);
@@ -136,23 +136,23 @@ public class BlossomWarps implements ModInitializer {
         return Command.SINGLE_SUCCESS;
     }
 
-    private int warpPlayer(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity player) {
+    private int warpPlayer(CommandContext<CommandSourceStack> ctx, ServerPlayer player) {
         String warpName = StringArgumentType.getString(ctx, "warp");
         return warpPlayerToName(ctx, player, warpName);
     }
 
-    private int warpToName(CommandContext<ServerCommandSource> ctx, String warpName) throws CommandSyntaxException {
-        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+    private int warpToName(CommandContext<CommandSourceStack> ctx, String warpName) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
         return warpPlayerToName(ctx, player, warpName);
     }
 
 
-    MutableText listWarpsConcatenate(String world) {
-        MutableText result = warpController.getWarps()
+    MutableComponent listWarpsConcatenate(String world) {
+        MutableComponent result = warpController.getWarps()
                 .stream()
                 .filter(warp -> warp.world.equals(world))
                 .map(warp -> TextUtils.translation("blossom.warps.list.item", warp.name)
-                        .styled(style -> style
+                        .withStyle(style -> style
                                 .withClickEvent(new ClickEvent.SuggestCommand("/warp " + warp.name))
                                 .withHoverEvent(new HoverEvent.ShowText(
                                         TextUtils.translation(
@@ -171,35 +171,35 @@ public class BlossomWarps implements ModInitializer {
                         TextUtils.translation("blossom.warps.list.item.after"),
                         TextUtils.translation("blossom.warps.list.item.join")
                 ));
-        MutableText copy = TextUtils.translation("blossom.warps.list.header", DimName.get(world)).copy();
+        MutableComponent copy = TextUtils.translation("blossom.warps.list.header", DimName.get(world)).copy();
         return copy.append(result);
     }
 
-    private int listWarpsAll(CommandContext<ServerCommandSource> ctx) {
+    private int listWarpsAll(CommandContext<CommandSourceStack> ctx) {
         List<Warp> warps = warpController.getWarps();
         if (warps.size() == 0) {
             TextUtils.sendErr(ctx, "blossom.warps.list.all.empty");
             return Command.SINGLE_SUCCESS;
         }
 
-        MutableText result = warps.stream()
+        MutableComponent result = warps.stream()
                 .map(warp -> warp.world)
                 .distinct()
                 .map(this::listWarpsConcatenate)
                 .collect(TextSuperJoiner.joiner(TextUtils.translation("blossom.warps.list.all.join")));
 
-        ctx.getSource().sendFeedback(() -> TextUtils.translation("blossom.warps.list.all.header").append(result), false);
+        ctx.getSource().sendSuccess(() -> TextUtils.translation("blossom.warps.list.all.header").append(result), false);
         return Command.SINGLE_SUCCESS;
     }
 
-    private int listWarpsDim(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
-        String dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue().toString();
+    private int listWarpsDim(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        String dimension = DimensionArgument.getDimension(ctx, "dimension").dimension().identifier().toString();
         if (warpController.getWarps().stream().noneMatch(warp -> warp.world.equals(dimension))) {
             TextUtils.sendErr(ctx, "blossom.warps.list.dimension.empty", dimension);
             return Command.SINGLE_SUCCESS;
         }
 
-        ctx.getSource().sendFeedback(() ->
+        ctx.getSource().sendSuccess(() ->
                 listWarpsConcatenate(dimension),
                 false
         );
@@ -207,7 +207,7 @@ public class BlossomWarps implements ModInitializer {
     }
 
 
-    private int addWarp(CommandContext<ServerCommandSource> ctx, Warp warp) {
+    private int addWarp(CommandContext<CommandSourceStack> ctx, Warp warp) {
         LOGGER.info("adding warp {}", warp);
         boolean result = warpController.addWarp(warp);
         if (result) {
@@ -218,20 +218,20 @@ public class BlossomWarps implements ModInitializer {
         return Command.SINGLE_SUCCESS;
     }
 
-    private int addWarpPlayerPos(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private int addWarpPlayerPos(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
-        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
         return addWarp(ctx, new Warp(
             name, player,
             new TeleportUtils.TeleportDestination(player)
         ));
     }
 
-    private int addWarpPosRotDim(CommandContext<ServerCommandSource> ctx, ServerWorld dimension, boolean global) throws CommandSyntaxException {
+    private int addWarpPosRotDim(CommandContext<CommandSourceStack> ctx, ServerLevel dimension, boolean global) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
-        Vec3d position = Vec3ArgumentType.getPosArgument(ctx, "position").getPos(ctx.getSource());
-        Vec2f rotation = RotationArgumentType.getRotation(ctx, "rotation").getRotation(ctx.getSource());
-        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+        Vec3 position = Vec3Argument.getCoordinates(ctx, "position").getPosition(ctx.getSource());
+        Vec2 rotation = RotationArgument.getRotation(ctx, "rotation").getRotation(ctx.getSource());
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
         return addWarp(ctx, new Warp(
                 name, player,
                 new TeleportUtils.TeleportDestination(
@@ -244,18 +244,18 @@ public class BlossomWarps implements ModInitializer {
         ));
     }
 
-    private int addWarpPosRot(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
-        return addWarpPosRotDim(ctx, ctx.getSource().getWorld(), false);
+    private int addWarpPosRot(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        return addWarpPosRotDim(ctx, ctx.getSource().getLevel(), false);
     }
 
-    private int addWarpDimension(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
-        ServerWorld dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension");
+    private int addWarpDimension(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerLevel dimension = DimensionArgument.getDimension(ctx, "dimension");
         return addWarpPosRotDim(ctx, dimension, false);
     }
 
-    private int addGlobalWarpPlayerPos(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private int addGlobalWarpPlayerPos(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
-        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
         return addWarp(ctx, new Warp(
                 name, player,
                 new TeleportUtils.TeleportDestination(player),
@@ -263,17 +263,17 @@ public class BlossomWarps implements ModInitializer {
         ));
     }
 
-    private int addGlobalWarpPosRot(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
-        return addWarpPosRotDim(ctx, ctx.getSource().getWorld(), true);
+    private int addGlobalWarpPosRot(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        return addWarpPosRotDim(ctx, ctx.getSource().getLevel(), true);
     }
 
-    private int addGlobalWarpDimension(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
-        ServerWorld dimension = DimensionArgumentType.getDimensionArgument(ctx, "dimension");
+    private int addGlobalWarpDimension(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerLevel dimension = DimensionArgument.getDimension(ctx, "dimension");
         return addWarpPosRotDim(ctx, dimension, true);
     }
 
 
-    private int removeWarp(CommandContext<ServerCommandSource> ctx) {
+    private int removeWarp(CommandContext<CommandSourceStack> ctx) {
         String warpName = StringArgumentType.getString(ctx, "warp");
         LOGGER.info("removing warp {}", warpController.findWarp(warpName));
         boolean result = warpController.removeWarp(warpName);
@@ -286,7 +286,7 @@ public class BlossomWarps implements ModInitializer {
     }
 
 
-    private int loadLegacy(CommandContext<ServerCommandSource> ctx, boolean overwrite) {
+    private int loadLegacy(CommandContext<CommandSourceStack> ctx, boolean overwrite) {
         TextUtils.sendOps(ctx, "blossom.homes.load-legacy.info");
 
         if (overwrite) {
@@ -295,7 +295,7 @@ public class BlossomWarps implements ModInitializer {
 
         MinecraftServer server = ctx.getSource().getServer();
 
-        File[] playerDataFiles = server.getSavePath(WorldSavePath.LEVEL_DAT).toFile().listFiles();
+        File[] playerDataFiles = server.getWorldPath(LevelResource.LEVEL_DATA_FILE).toFile().listFiles();
 
         int totalHomes = 0, totalPlayers = 0;
 
@@ -343,13 +343,13 @@ public class BlossomWarps implements ModInitializer {
         return Command.SINGLE_SUCCESS;
     }
 
-    private int loadLegacyArgument(CommandContext<ServerCommandSource> ctx) {
+    private int loadLegacyArgument(CommandContext<CommandSourceStack> ctx) {
         boolean overwrite = BoolArgumentType.getBool(ctx, "overwrite");
 
         return loadLegacy(ctx, overwrite);
     }
 
-    private int loadLegacyDefault(CommandContext<ServerCommandSource> ctx) {
+    private int loadLegacyDefault(CommandContext<CommandSourceStack> ctx) {
         return loadLegacy(ctx, false);
     }
 }

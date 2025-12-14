@@ -6,12 +6,12 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import dev.codedsakura.blossom.lib.data.ListDataController;
 import dev.codedsakura.blossom.lib.teleport.TeleportUtils;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,13 +26,13 @@ class Warp {
     public String world;
     public boolean global;
 
-    Warp(String name, PlayerEntity owner, TeleportUtils.TeleportDestination destination) {
+    Warp(String name, Player owner, TeleportUtils.TeleportDestination destination) {
         this(name, owner, destination, false);
     }
 
-    Warp(String name, PlayerEntity owner, TeleportUtils.TeleportDestination destination, boolean global) {
+    Warp(String name, Player owner, TeleportUtils.TeleportDestination destination, boolean global) {
         this(
-                name, destination.world.getRegistryKey().getValue().toString(), owner.getUuid(),
+                name, destination.world.dimension().identifier().toString(), owner.getUUID(),
                 destination.x, destination.y, destination.z,
                 destination.yaw, destination.pitch,
                 global
@@ -68,13 +68,13 @@ class Warp {
 
     TeleportUtils.TeleportDestination toDestination(MinecraftServer server) {
         return new TeleportUtils.TeleportDestination(
-                server.getWorld(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(this.world))),
+                server.getLevel(ResourceKey.create(Registries.DIMENSION, Identifier.parse(this.world))),
                 x, y, z, yaw, pitch
         );
     }
 }
 
-class WarpController extends ListDataController<Warp> implements SuggestionProvider<ServerCommandSource> {
+class WarpController extends ListDataController<Warp> implements SuggestionProvider<CommandSourceStack> {
 
     @Override
     public List<Warp> defaultData() {
@@ -92,7 +92,7 @@ class WarpController extends ListDataController<Warp> implements SuggestionProvi
     }
 
     @Override
-    public CompletableFuture<Suggestions> getSuggestions(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
+    public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
         String start = builder.getRemaining().toLowerCase();
         data.stream()
                 .map(v -> v.name)
